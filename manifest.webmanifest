@@ -1,0 +1,16 @@
+{
+  "name": "ShadowCards — یادگیری چهارزبانه",
+  "short_name": "ShadowCards",
+  "description": "مرور فلش‌کارت‌های فارسی، انگلیسی، ترکی و فرانسوی",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f4eb",
+  "theme_color": "#123f35",
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [
+    {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#123f35" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ShadowCards" />
+    <title>ShadowCards</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <button class="brand" data-action="home" type="button">
+          <span class="brand-mark">S</span>
+          <span><b>ShadowCards</b><small>یادگیری چهارزبانه</small></span>
+        </button>
+        <button id="settingsButton" class="icon-button hidden" data-action="settings" type="button" aria-label="تنظیمات">⚙</button>
+      </header>
+
+      <button id="notice" class="notice hidden" type="button"></button>
+
+      <section id="emptyView" class="view empty-view">
+        <div class="cards-art" aria-hidden="true"><span>FR</span><span>TR</span><span>EN</span><span>FA</span></div>
+        <p class="eyebrow">فلش‌کارت‌های خودت، همیشه همراهت</p>
+        <h1>فایل را وارد کن و<br />یادگیری را شروع کن.</h1>
+        <p class="intro">فایل خروجی برنامه ویندوز را انتخاب کن. اطلاعات و پیشرفتت فقط روی همین آیفون ذخیره می‌شود.</p>
+        <button class="primary" data-action="import" type="button">＋ وارد کردن فایل فلش‌کارت</button>
+        <p class="hint">فایل‌های دارای پسوند shadow و json</p>
+      </section>
+
+      <section id="homeView" class="view hidden">
+        <article class="welcome">
+          <div>
+            <p class="eyebrow">وقت مرور است</p>
+            <h1 id="deckName"></h1>
+            <p id="dueMessage"></p>
+          </div>
+          <div id="progressRing" class="ring"><span id="progressText">۰٪</span></div>
+        </article>
+        <div class="stats">
+          <div><strong id="totalCount">۰</strong><span>همه کارت‌ها</span></div>
+          <div><strong id="learnedCount">۰</strong><span>مرور شده</span></div>
+          <div class="gold"><strong id="dueCount">۰</strong><span>آماده امروز</span></div>
+        </div>
+        <button class="primary wide" data-action="study" type="button">شروع مرور ←</button>
+        <article class="file-row">
+          <button data-action="import" type="button">⇧ جایگزینی فایل</button>
+          <span>آخرین ورود <b id="importDate"></b></span>
+        </article>
+      </section>
+
+      <section id="studyView" class="view hidden">
+        <header class="study-head">
+          <button class="icon-button" data-action="home" type="button">×</button>
+          <div><b>مرور امروز</b><small id="studyCounter"></small></div>
+        </header>
+        <div class="bar"><span id="studyBar"></span></div>
+
+        <article id="flashcard" class="flashcard">
+          <button id="cardFront" class="front" data-action="reveal" type="button">
+            <span class="pill">فارسی</span>
+            <strong id="persianText"></strong>
+            <small>برای دیدن پاسخ لمس کن</small>
+          </button>
+          <div id="cardBack" class="back hidden">
+            <section class="translation">
+              <header><span>English</span><button class="speak" data-speak="english" type="button">▶</button></header>
+              <strong id="englishText" dir="ltr"></strong>
+            </section>
+            <section class="translation">
+              <header><span>Türkçe</span><button class="speak" data-speak="turkish" type="button">▶</button></header>
+              <strong id="turkishText" dir="ltr"></strong>
+            </section>
+            <section class="translation">
+              <header><span>Français</span><button class="speak" data-speak="french" type="button">▶</button></header>
+              <strong id="frenchText" dir="ltr"></strong>
+              <p id="pronunciationText" class="pronunciation"></p>
+            </section>
+            <section id="breakdown" class="breakdown"></section>
+          </div>
+        </article>
+
+        <div id="ratings" class="ratings hidden">
+          <button data-rate="again" type="button"><b>دوباره</b><small>۱۰ دقیقه</small></button>
+          <button data-rate="hard" type="button"><b>سخت</b><small>۱ روز</small></button>
+          <button class="good" data-rate="good" type="button"><b>خوب</b><small>۳ روز</small></button>
+          <button class="easy" data-rate="easy" type="button"><b>آسان</b><small>بعدتر</small></button>
+        </div>
+      </section>
+
+      <section id="settingsView" class="view hidden">
+        <header class="page-head">
+          <button class="icon-button" data-action="home" type="button">←</button>
+          <div><p class="eyebrow">شخصی‌سازی</p><h1>تنظیمات</h1></div>
+        </header>
+        <article class="panel">
+          <div class="setting-title">
+            <span><b>سرعت خواندن</b><small>برای تمرین شادووینگ</small></span>
+            <b id="rateValue" dir="ltr">0.78×</b>
+          </div>
+          <input id="rateRange" type="range" min="0.55" max="1.1" step="0.05" value="0.78" />
+          <div class="range-label"><span>آهسته</span><span>طبیعی</span></div>
+          <button id="voiceTest" class="voice-test" type="button">▶ آزمایش صدا</button>
+        </article>
+        <article class="panel">
+          <div class="voice-heading">
+            <b>انتخاب صدای هر زبان</b>
+            <small>صدای ترکی فقط از میان صداهای واقعی ترکی انتخاب می‌شود.</small>
+          </div>
+          <div class="voice-list">
+            <label class="voice-row">
+              <span>English</span>
+              <span class="voice-controls">
+                <select id="voiceEnglish" dir="ltr"></select>
+                <button id="voiceEnglishTest" class="round-test" type="button" aria-label="آزمایش صدای انگلیسی">▶</button>
+              </span>
+            </label>
+            <label class="voice-row">
+              <span>Türkçe</span>
+              <span class="voice-controls">
+                <select id="voiceTurkish" dir="ltr"></select>
+                <button id="voiceTurkishTest" class="round-test" type="button" aria-label="آزمایش صدای ترکی">▶</button>
+              </span>
+              <small id="turkishVoiceHelp" class="voice-help hidden">
+                صدای ترکی روی آیفون نصب نیست. در تنظیمات آیفون، بخش Accessibility و سپس Spoken Content، صدای Turkish را دانلود کن.
+              </small>
+            </label>
+            <label class="voice-row">
+              <span>Français</span>
+              <span class="voice-controls">
+                <select id="voiceFrench" dir="ltr"></select>
+                <button id="voiceFrenchTest" class="round-test" type="button" aria-label="آزمایش صدای فرانسوی">▶</button>
+              </span>
+            </label>
+          </div>
+        </article>
+        <article class="panel">
+          <b>فایل و اطلاعات</b>
+          <button class="setting-row" data-action="import" type="button"><span>وارد کردن فایل جدید</span><span>←</span></button>
+          <button class="setting-row danger" data-action="reset" type="button"><span>پاک کردن پیشرفت یادگیری</span><span>×</span></button>
+        </article>
+        <p class="privacy">فایل‌ها و پیشرفت یادگیری فقط روی آیفون خودت ذخیره می‌شوند و به سرور فرستاده نمی‌شوند.</p>
+      </section>
+
+      <input id="fileInput" type="file" accept=".shadow,.json,application/json" hidden />
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
