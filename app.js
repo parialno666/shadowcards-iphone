@@ -11,9 +11,11 @@ let reviews = read(KEYS.reviews, {});
 let preferences = {
   rate: 0.78,
   voices: {},
+  voiceNames: {},
   ...read(KEYS.preferences, {}),
 };
 preferences.voices ||= {};
+preferences.voiceNames ||= {};
 let studyCards = [];
 let index = 0;
 
@@ -70,9 +72,20 @@ function matchingVoices(lang) {
 }
 
 function pickVoice(lang) {
+  const voices = speechSynthesis.getVoices();
   const selectedVoiceURI = preferences.voices?.[lang];
   if (selectedVoiceURI) {
-    const selected = speechSynthesis.getVoices().find((voice) => voice.voiceURI === selectedVoiceURI);
+    const selected = voices.find((voice) => voice.voiceURI === selectedVoiceURI);
+    if (selected) return selected;
+  }
+  const selectedVoiceName = preferences.voiceNames?.[lang];
+  if (selectedVoiceName) {
+    const selected = voices.find(
+      (voice) =>
+        voice.name === selectedVoiceName &&
+        normalizeVoiceLanguage(voice.lang).split("-")[0] ===
+          normalizeVoiceLanguage(lang).split("-")[0],
+    );
     if (selected) return selected;
   }
   return matchingVoices(lang)[0];
@@ -83,13 +96,22 @@ function loadVoiceSelectors() {
   Object.values(SPEECH_LANGUAGES).forEach(({ lang, select }) => {
     const element = $(select);
     const previousValue = preferences.voices?.[lang] || "";
+    const previousName = preferences.voiceNames?.[lang] || "";
+    const voices = matchingVoices(lang);
     element.replaceChildren(new Option("انتخاب خودکار بهترین صدا", ""));
-    matchingVoices(lang).forEach((voice) => {
+    voices.forEach((voice) => {
       element.add(new Option(`${voice.name} — ${voice.lang}`, voice.voiceURI));
     });
-    element.value = previousValue;
-    if (!element.value) {
-      preferences.voices[lang] = "";
+    const savedVoice =
+      voices.find((voice) => voice.voiceURI === previousValue) ||
+      voices.find((voice) => voice.name === previousName);
+    if (savedVoice) {
+      element.value = savedVoice.voiceURI;
+      preferences.voices[lang] = savedVoice.voiceURI;
+      preferences.voiceNames[lang] = savedVoice.name;
+      write(KEYS.preferences, preferences);
+    } else {
+      element.value = "";
     }
   });
   const hasTurkishVoice = matchingVoices("tr-TR").length > 0;
@@ -305,6 +327,10 @@ $("voiceTest").addEventListener("click", () => {
 Object.entries(SPEECH_LANGUAGES).forEach(([field, { lang, select, sample }]) => {
   $(select).addEventListener("change", (event) => {
     preferences.voices[lang] = event.target.value;
+    const selectedVoice = speechSynthesis
+      .getVoices()
+      .find((voice) => voice.voiceURI === event.target.value);
+    preferences.voiceNames[lang] = selectedVoice?.name || "";
     write(KEYS.preferences, preferences);
   });
   $(`${select}Test`).addEventListener("click", (event) => {
@@ -333,6 +359,37 @@ Object.entries(SPEECH_LANGUAGES).forEach(([field, { lang, select, sample }]) => 
     utterance.onerror = () => button.classList.remove("playing");
     speechSynthesis.speak(utterance);
   });
+});
+
+$("saveSettings").addEventListener("click", () => {
+  preferences.rate = Number($("rateRange").value);
+  Object.values(SPEECH_LANGUAGES).forEach(({ lang, select }) => {
+    const voiceURI = $(select).value;
+    const selectedVoice = speechSynthesis
+      .getVoices()
+      .find((voice) => voice.voiceURI === voiceURI);
+    preferences.voices[lang] = voiceURI;
+    preferences.voiceNames[lang] = selectedVoice?.name || preferences.voiceNames[lang] || "";
+  });
+  write(KEYS.preferences, preferences);
+  const button = $("saveSettings");
+  button.textContent = "تنظیمات ذخیره شد ✓";
+  button.classList.add("saved");
+  window.setTimeout(() => {
+    button.textContent = "ذخیره تنظیمات";
+    button.classList.remove("saved");
+  }, 1800);
+});
+
+function persistAppState() {
+  if (deck) write(KEYS.deck, deck);
+  write(KEYS.reviews, reviews);
+  write(KEYS.preferences, preferences);
+}
+
+window.addEventListener("pagehide", persistAppState);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") persistAppState();
 });
 
 if ("speechSynthesis" in window) {

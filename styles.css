@@ -157,5 +157,7 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
 .voice-help { direction:rtl; text-align:right; margin:0; padding:10px 12px; border-radius:12px; background:#fff4dc; color:#77541d; font-weight:400; }
 .setting-row { width:100%; border:0; border-top:1px solid var(--line); background:none; padding:17px 0 0; margin-top:17px; display:flex; justify-content:space-between; }
 .setting-row.danger { color: var(--danger); }
+.save-settings { width:100%; min-height:52px; border:0; border-radius:16px; background:var(--forest); color:#fff; font:inherit; font-weight:800; cursor:pointer; box-shadow:0 10px 24px rgba(23,60,46,.18); }
+.save-settings.saved { background:#3c7b5e; }
 .privacy { color:var(--muted); font-size:12px; line-height:1.8; padding:15px; }
 @media(max-width:380px){.app{padding-inline:14px}.stats{gap:6px}.ratings{grid-template-columns:repeat(2,1fr)}}
