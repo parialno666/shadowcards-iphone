@@ -50,6 +50,7 @@ function syncActiveDeck() {
 }
 
 migrateLegacyDeck();
+migrateGenericLessonNames();
 syncActiveDeck();
 
 const SPEECH_LANGUAGES = {
@@ -156,13 +157,52 @@ function cardId(card) {
   return card.english.trim().toLowerCase();
 }
 
-function lessonNameFromFile(filename) {
-  return filename
+function cleanLessonName(value) {
+  return String(value || "")
     .replace(/\.(shadow|json)$/i, "")
     .replace(/^\s*\d+\s*[-_.—–]*\s*/, "")
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
-    .trim() || "درس جدید";
+    .trim();
+}
+
+function isGenericLessonName(value) {
+  return ["my lesson", "lesson", "new lesson", "درس جدید"].includes(
+    cleanLessonName(value).toLowerCase(),
+  );
+}
+
+function inferredLessonName(cards) {
+  const opening = (cards || [])
+    .slice(0, 5)
+    .map((card) => card?.english?.trim().toLowerCase().replace(/[.!?]+$/g, ""))
+    .filter(Boolean);
+  if (opening.includes("i just woke up") || opening.includes("i'm awake now")) {
+    return "Wake Up";
+  }
+  return "";
+}
+
+function lessonNameFromFile(filename, cards = [], embeddedName = "") {
+  const fileName = cleanLessonName(filename);
+  const savedName = cleanLessonName(embeddedName);
+  const preferredName = savedName && !isGenericLessonName(savedName) ? savedName : fileName;
+  if (!preferredName || isGenericLessonName(preferredName)) {
+    return inferredLessonName(cards) || preferredName || "درس جدید";
+  }
+  return preferredName;
+}
+
+function migrateGenericLessonNames() {
+  let changed = false;
+  decks = decks.map((item) => {
+    if (!isGenericLessonName(item.name)) return item;
+    const inferredName = inferredLessonName(item.cards);
+    if (!inferredName) return item;
+    changed = true;
+    return { ...item, name: inferredName };
+  });
+  if (changed) write(KEYS.decks, decks);
 }
 
 function persistLessons() {
@@ -206,7 +246,11 @@ async function importFile(file) {
     const source = Array.isArray(parsed) ? parsed : Array.isArray(parsed.cards) ? parsed.cards : [];
     const cards = source.map(normalizeCard).filter(Boolean);
     if (!cards.length) throw new Error("empty");
-    const name = lessonNameFromFile(file.name);
+    const name = lessonNameFromFile(
+      file.name,
+      cards,
+      parsed.name || parsed.lesson_name || parsed.title || "",
+    );
     const existing = decks.find((item) => item.name.toLowerCase() === name.toLowerCase());
     if (existing && !confirm(`درسی با نام «${name}» وجود دارد. فایل جدید جایگزین همان درس شود؟`)) {
       message("ورود فایل لغو شد و درس قبلی بدون تغییر باقی ماند.");
