@@ -27,10 +27,22 @@
       <section id="emptyView" class="view empty-view">
         <div class="cards-art" aria-hidden="true"><span>FR</span><span>TR</span><span>EN</span><span>FA</span></div>
         <p class="eyebrow">فلش‌کارت‌های خودت، همیشه همراهت</p>
-        <h1>فایل را وارد کن و<br />یادگیری را شروع کن.</h1>
-        <p class="intro">فایل خروجی برنامه ویندوز را انتخاب کن. اطلاعات و پیشرفتت فقط روی همین آیفون ذخیره می‌شود.</p>
-        <button class="primary" data-action="import" type="button">＋ وارد کردن فایل فلش‌کارت</button>
+        <h1>اولین درس را وارد کن و<br />یادگیری را شروع کن.</h1>
+        <p class="intro">هر فایل خروجی برنامه ویندوز، به‌عنوان یک درس جدا ذخیره می‌شود. نام فایل، نام همان درس خواهد بود.</p>
+        <button class="primary" data-action="import" type="button">＋ افزودن اولین درس</button>
         <p class="hint">فایل‌های دارای پسوند shadow و json</p>
+      </section>
+
+      <section id="libraryView" class="view hidden">
+        <header class="library-head">
+          <div>
+            <p class="eyebrow">کتابخانهٔ شخصی تو</p>
+            <h1>درس‌های من</h1>
+            <p id="librarySummary"></p>
+          </div>
+          <button class="add-lesson" data-action="import" type="button">＋ درس جدید</button>
+        </header>
+        <section id="lessonList" class="lesson-list" aria-label="فهرست درس‌ها"></section>
       </section>
 
       <section id="homeView" class="view hidden">
@@ -49,7 +61,7 @@
         </div>
         <button class="primary wide" data-action="study" type="button">شروع مرور ←</button>
         <article class="file-row">
-          <button data-action="import" type="button">⇧ جایگزینی فایل</button>
+          <button data-action="library" type="button">همهٔ درس‌ها</button>
           <span>آخرین ورود <b id="importDate"></b></span>
         </article>
       </section>
@@ -141,8 +153,8 @@
         </article>
         <article class="panel">
           <b>فایل و اطلاعات</b>
-          <button class="setting-row" data-action="import" type="button"><span>وارد کردن فایل جدید</span><span>←</span></button>
-          <button class="setting-row danger" data-action="reset" type="button"><span>پاک کردن پیشرفت یادگیری</span><span>×</span></button>
+          <button class="setting-row" data-action="import" type="button"><span>افزودن درس جدید</span><span>←</span></button>
+          <button class="setting-row danger" data-action="reset" type="button"><span>پاک کردن پیشرفت همین درس</span><span>×</span></button>
         </article>
         <button id="saveSettings" class="save-settings" type="button">ذخیره تنظیمات</button>
         <p class="privacy">فایل‌ها و پیشرفت یادگیری فقط روی آیفون خودت ذخیره می‌شوند و به سرور فرستاده نمی‌شوند.</p>

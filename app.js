@@ -1,13 +1,19 @@
 const KEYS = {
-  deck: "shadowcards:deck:v1",
-  reviews: "shadowcards:reviews:v1",
+  decks: "shadowcards:decks:v2",
+  reviews: "shadowcards:reviews:v2",
+  activeDeck: "shadowcards:active-deck:v2",
+  legacyDeck: "shadowcards:deck:v1",
+  legacyReviews: "shadowcards:reviews:v1",
   preferences: "shadowcards:preferences:v1",
 };
 
 const $ = (id) => document.getElementById(id);
-const views = ["emptyView", "homeView", "studyView", "settingsView"];
-let deck = read(KEYS.deck, null);
-let reviews = read(KEYS.reviews, {});
+const views = ["emptyView", "libraryView", "homeView", "studyView", "settingsView"];
+let decks = read(KEYS.decks, []);
+let reviewsByDeck = read(KEYS.reviews, {});
+let activeDeckId = read(KEYS.activeDeck, null);
+let deck = null;
+let reviews = {};
 let preferences = {
   rate: 0.78,
   voices: {},
@@ -18,6 +24,33 @@ preferences.voices ||= {};
 preferences.voiceNames ||= {};
 let studyCards = [];
 let index = 0;
+
+function createDeckId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `lesson-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function migrateLegacyDeck() {
+  if (decks.length) return;
+  const legacyDeck = read(KEYS.legacyDeck, null);
+  if (!legacyDeck?.cards?.length) return;
+  const id = createDeckId();
+  decks = [{ ...legacyDeck, id }];
+  reviewsByDeck = { [id]: read(KEYS.legacyReviews, {}) };
+  activeDeckId = id;
+  write(KEYS.decks, decks);
+  write(KEYS.reviews, reviewsByDeck);
+  write(KEYS.activeDeck, activeDeckId);
+}
+
+function syncActiveDeck() {
+  deck = decks.find((item) => item.id === activeDeckId) || decks[0] || null;
+  activeDeckId = deck?.id || null;
+  reviews = activeDeckId ? (reviewsByDeck[activeDeckId] ||= {}) : {};
+}
+
+migrateLegacyDeck();
+syncActiveDeck();
 
 const SPEECH_LANGUAGES = {
   english: { lang: "en-US", select: "voiceEnglish", sample: "Learning a language takes time and practice." },
@@ -123,13 +156,30 @@ function cardId(card) {
   return card.english.trim().toLowerCase();
 }
 
+function lessonNameFromFile(filename) {
+  return filename
+    .replace(/\.(shadow|json)$/i, "")
+    .replace(/^\s*\d+\s*[-_.—–]*\s*/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || "درس جدید";
+}
+
+function persistLessons() {
+  if (activeDeckId) reviewsByDeck[activeDeckId] = reviews;
+  write(KEYS.decks, decks);
+  write(KEYS.reviews, reviewsByDeck);
+  write(KEYS.activeDeck, activeDeckId);
+}
+
 function faNumber(value) {
   return String(value).replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
 }
 
 function show(view) {
   views.forEach((id) => $(id).classList.toggle("hidden", id !== view));
-  $("settingsButton").classList.toggle("hidden", !deck || view === "studyView");
+  $("settingsButton").classList.toggle("hidden", !decks.length || view === "studyView");
+  if (view === "libraryView") renderLibrary();
   if (view === "homeView") renderHome();
 }
 
@@ -156,15 +206,109 @@ async function importFile(file) {
     const source = Array.isArray(parsed) ? parsed : Array.isArray(parsed.cards) ? parsed.cards : [];
     const cards = source.map(normalizeCard).filter(Boolean);
     if (!cards.length) throw new Error("empty");
-    deck = { name: file.name.replace(/\.(shadow|json)$/i, ""), cards, importedAt: Date.now() };
-    reviews = {};
-    write(KEYS.deck, deck);
-    write(KEYS.reviews, reviews);
-    message(`${faNumber(cards.length)} فلش‌کارت با موفقیت وارد شد.`);
-    show("homeView");
+    const name = lessonNameFromFile(file.name);
+    const existing = decks.find((item) => item.name.toLowerCase() === name.toLowerCase());
+    if (existing && !confirm(`درسی با نام «${name}» وجود دارد. فایل جدید جایگزین همان درس شود؟`)) {
+      message("ورود فایل لغو شد و درس قبلی بدون تغییر باقی ماند.");
+      return;
+    }
+
+    if (existing) {
+      decks = decks.map((item) =>
+        item.id === existing.id
+          ? { ...item, name, cards, importedAt: Date.now() }
+          : item,
+      );
+      activeDeckId = existing.id;
+    } else {
+      const newDeck = {
+        id: createDeckId(),
+        name,
+        cards,
+        importedAt: Date.now(),
+      };
+      decks = [newDeck, ...decks];
+      activeDeckId = newDeck.id;
+    }
+
+    syncActiveDeck();
+    persistLessons();
+    index = 0;
+    message(`درس «${name}» با ${faNumber(cards.length)} فلش‌کارت اضافه شد.`);
+    show("libraryView");
   } catch {
     message("این فایل قابل خواندن نیست. فایل خروجی برنامه ویندوز را انتخاب کن.");
   }
+}
+
+function renderLibrary() {
+  if (!decks.length) return show("emptyView");
+  const now = Date.now();
+  const totalCards = decks.reduce((sum, item) => sum + item.cards.length, 0);
+  const totalLearned = decks.reduce((sum, item) => {
+    const deckReviews = reviewsByDeck[item.id] || {};
+    return sum + item.cards.filter((card) => (deckReviews[cardId(card)]?.seen || 0) > 0).length;
+  }, 0);
+
+  $("librarySummary").textContent =
+    `${faNumber(decks.length)} درس، ${faNumber(totalCards)} فلش‌کارت و ${faNumber(totalLearned)} کارت مرورشده`;
+  $("lessonList").replaceChildren();
+
+  decks.forEach((item) => {
+    const deckReviews = reviewsByDeck[item.id] || {};
+    const learned = item.cards.filter((card) => (deckReviews[cardId(card)]?.seen || 0) > 0).length;
+    const due = item.cards.filter((card) => (deckReviews[cardId(card)]?.due || 0) <= now).length;
+    const progress = item.cards.length ? Math.round((learned / item.cards.length) * 100) : 0;
+
+    const button = document.createElement("button");
+    button.className = "lesson-card";
+    button.type = "button";
+    button.dataset.lessonId = item.id;
+    button.setAttribute("aria-label", `باز کردن درس ${item.name}`);
+
+    const copy = document.createElement("span");
+    copy.className = "lesson-copy";
+    const title = document.createElement("strong");
+    title.textContent = item.name;
+    const meta = document.createElement("span");
+    meta.className = "lesson-meta";
+    const cardCount = document.createElement("span");
+    cardCount.textContent = `${faNumber(item.cards.length)} کارت`;
+    const dueCount = document.createElement("span");
+    dueCount.textContent = `${faNumber(due)} آمادهٔ مرور`;
+    const importedAt = document.createElement("span");
+    importedAt.textContent = new Date(item.importedAt).toLocaleDateString("fa-IR");
+    meta.append(cardCount, dueCount, importedAt);
+    copy.append(title, meta);
+
+    const progressRing = document.createElement("span");
+    progressRing.className = "lesson-progress";
+    progressRing.style.setProperty("--lesson-progress", `${progress * 3.6}deg`);
+    const progressText = document.createElement("span");
+    progressText.textContent = `${faNumber(progress)}٪`;
+    progressRing.append(progressText);
+
+    button.append(copy, progressRing);
+    $("lessonList").append(button);
+  });
+}
+
+function openLesson(id) {
+  if (!decks.some((item) => item.id === id)) return;
+  if (activeDeckId) reviewsByDeck[activeDeckId] = reviews;
+  activeDeckId = id;
+  syncActiveDeck();
+  write(KEYS.activeDeck, activeDeckId);
+  setStudyStart();
+  show("homeView");
+}
+
+function setStudyStart() {
+  studyCards = [];
+  index = 0;
+  $("cardFront").classList.remove("hidden");
+  $("cardBack").classList.add("hidden");
+  $("ratings").classList.add("hidden");
 }
 
 function renderHome() {
@@ -277,7 +421,8 @@ function rateCard(rating) {
     repetitions += 1; ease += .15; interval = Math.max(4, Math.round((interval || 2) * ease * 1.3)); due += interval * 86400000;
   }
   reviews[key] = { due, interval, repetitions, ease, seen: previous.seen + 1 };
-  write(KEYS.reviews, reviews);
+  reviewsByDeck[activeDeckId] = reviews;
+  write(KEYS.reviews, reviewsByDeck);
   index = (index + 1) % studyCards.length;
   renderCard(false);
 }
@@ -287,13 +432,18 @@ document.addEventListener("click", (event) => {
   if (!target) return;
   const action = target.dataset.action;
   if (action === "import") $("fileInput").click();
-  if (action === "home") show(deck ? "homeView" : "emptyView");
+  if (action === "home" || action === "library") show(decks.length ? "libraryView" : "emptyView");
   if (action === "settings") show("settingsView");
   if (action === "study") startStudy();
   if (action === "reveal") renderCard(true);
-  if (action === "reset" && confirm("همه پیشرفت‌های یادگیری پاک شوند؟")) {
-    reviews = {}; write(KEYS.reviews, reviews); message("پیشرفت یادگیری پاک شد."); show("homeView");
+  if (action === "reset" && deck && confirm(`پیشرفت یادگیری درس «${deck.name}» پاک شود؟`)) {
+    reviews = {};
+    reviewsByDeck[activeDeckId] = reviews;
+    write(KEYS.reviews, reviewsByDeck);
+    message("پیشرفت این درس پاک شد.");
+    show("homeView");
   }
+  if (target.dataset.lessonId) openLesson(target.dataset.lessonId);
   if (target.dataset.speak) speak(target.dataset.speak, target);
   if (target.dataset.rate) rateCard(target.dataset.rate);
 });
@@ -382,8 +532,7 @@ $("saveSettings").addEventListener("click", () => {
 });
 
 function persistAppState() {
-  if (deck) write(KEYS.deck, deck);
-  write(KEYS.reviews, reviews);
+  persistLessons();
   write(KEYS.preferences, preferences);
 }
 
@@ -398,4 +547,4 @@ if ("speechSynthesis" in window) {
 }
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
-show(deck ? "homeView" : "emptyView");
+show(decks.length ? "libraryView" : "emptyView");
