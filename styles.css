@@ -82,10 +82,19 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
 .lesson-list { display: grid; gap: 13px; padding-bottom: 20px; }
 .lesson-card {
   width: 100%; border: 1px solid var(--line); border-radius: 22px; background: rgba(255,253,248,.94);
-  padding: 18px; display: grid; grid-template-columns: minmax(0,1fr) 64px; align-items: center;
-  gap: 14px; text-align: right; box-shadow: 0 9px 25px rgba(23,52,44,.07);
+  padding: 0; overflow: hidden; box-shadow: 0 9px 25px rgba(23,52,44,.07);
 }
-.lesson-card:active { transform: scale(.992); }
+.lesson-open {
+  width: 100%; border: 0; background: transparent; padding: 18px;
+  display: grid; grid-template-columns: minmax(0,1fr) 64px; align-items: center;
+  gap: 14px; text-align: right;
+}
+.lesson-open:active { transform: scale(.992); }
+.delete-lesson {
+  width: 100%; min-height: 43px; border: 0; border-top: 1px solid var(--line);
+  background: #fff7f5; color: var(--danger); font-size: 12px; font-weight: 800;
+}
+.delete-lesson:active { background: #f9e8e4; }
 .lesson-copy { min-width: 0; }
 .lesson-copy strong {
   display: block; color: var(--deep); font-size: 19px; line-height: 1.55; overflow-wrap: anywhere;

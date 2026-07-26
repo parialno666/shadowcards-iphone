@@ -260,11 +260,14 @@ function renderLibrary() {
     const due = item.cards.filter((card) => (deckReviews[cardId(card)]?.due || 0) <= now).length;
     const progress = item.cards.length ? Math.round((learned / item.cards.length) * 100) : 0;
 
-    const button = document.createElement("button");
-    button.className = "lesson-card";
-    button.type = "button";
-    button.dataset.lessonId = item.id;
-    button.setAttribute("aria-label", `باز کردن درس ${item.name}`);
+    const lessonCard = document.createElement("article");
+    lessonCard.className = "lesson-card";
+
+    const openButton = document.createElement("button");
+    openButton.className = "lesson-open";
+    openButton.type = "button";
+    openButton.dataset.lessonId = item.id;
+    openButton.setAttribute("aria-label", `باز کردن درس ${item.name}`);
 
     const copy = document.createElement("span");
     copy.className = "lesson-copy";
@@ -288,8 +291,17 @@ function renderLibrary() {
     progressText.textContent = `${faNumber(progress)}٪`;
     progressRing.append(progressText);
 
-    button.append(copy, progressRing);
-    $("lessonList").append(button);
+    openButton.append(copy, progressRing);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "delete-lesson";
+    deleteButton.type = "button";
+    deleteButton.dataset.deleteLessonId = item.id;
+    deleteButton.setAttribute("aria-label", `حذف درس ${item.name}`);
+    deleteButton.textContent = "حذف درس";
+
+    lessonCard.append(openButton, deleteButton);
+    $("lessonList").append(lessonCard);
   });
 }
 
@@ -301,6 +313,25 @@ function openLesson(id) {
   write(KEYS.activeDeck, activeDeckId);
   setStudyStart();
   show("homeView");
+}
+
+function deleteLesson(id) {
+  const lesson = decks.find((item) => item.id === id);
+  if (!lesson) return;
+  if (!confirm(`درس «${lesson.name}» و تمام پیشرفت آن حذف شود؟`)) return;
+
+  decks = decks.filter((item) => item.id !== id);
+  delete reviewsByDeck[id];
+
+  if (activeDeckId === id) {
+    activeDeckId = decks[0]?.id || null;
+  }
+
+  syncActiveDeck();
+  setStudyStart();
+  persistLessons();
+  message(`درس «${lesson.name}» حذف شد.`);
+  show(decks.length ? "libraryView" : "emptyView");
 }
 
 function setStudyStart() {
@@ -443,6 +474,7 @@ document.addEventListener("click", (event) => {
     message("پیشرفت این درس پاک شد.");
     show("homeView");
   }
+  if (target.dataset.deleteLessonId) deleteLesson(target.dataset.deleteLessonId);
   if (target.dataset.lessonId) openLesson(target.dataset.lessonId);
   if (target.dataset.speak) speak(target.dataset.speak, target);
   if (target.dataset.rate) rateCard(target.dataset.rate);
