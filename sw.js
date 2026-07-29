@@ -1,4 +1,4 @@
-const CACHE = "shadowcards-static-v9";
+const CACHE = "shadowcards-static-v10";
 const FILES = ["./", "./index.html", "./app.js", "./styles.css", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES)));

@@ -218,6 +218,8 @@ function faNumber(value) {
 
 function show(view) {
   views.forEach((id) => $(id).classList.toggle("hidden", id !== view));
+  document.querySelector(".app").classList.toggle("study-mode", view === "studyView");
+  if (view === "studyView") $("notice").classList.add("hidden");
   $("settingsButton").classList.toggle("hidden", !decks.length || view === "studyView");
   if (view === "libraryView") renderLibrary();
   if (view === "homeView") renderHome();

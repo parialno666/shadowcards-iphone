@@ -30,6 +30,18 @@ button { color: inherit; cursor: pointer; }
   margin: auto;
   padding: max(18px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom));
 }
+.app.study-mode {
+  height: 100dvh; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.app.study-mode .topbar { flex: 0 0 auto; margin-bottom: 12px; }
+.app.study-mode #studyView {
+  min-height: 0; flex: 1 1 auto;
+  display: flex; flex-direction: column;
+}
+.app.study-mode .study-head,
+.app.study-mode .bar,
+.app.study-mode .ratings { flex: 0 0 auto; }
 .hidden { display: none !important; }
 .topbar,.brand,.study-head,.page-head,.setting-title,.translation header,.file-row {
   display: flex; align-items: center;
@@ -144,11 +156,13 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
   min-height: min(66vh,620px); background: var(--paper); border: 1px solid var(--line);
   border-radius: 29px; box-shadow: var(--shadow); overflow: hidden;
 }
+.study-mode .flashcard { min-height: 0; flex: 1 1 auto; }
 .front {
   width: 100%; min-height: min(66vh,620px); border: 0; padding: 34px 25px;
   background: var(--paper);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
+.study-mode .front { min-height: 100%; padding-block: 22px; }
 .front strong {
   width: 100%; max-width: 450px; color: var(--deep); font-size: 40px; line-height: 1.55;
   text-align: center; overflow-wrap: normal; word-break: normal;
@@ -173,9 +187,16 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
   font-size: 12px; font-weight: 800;
 }
 .back { padding: 22px; max-height: min(66vh,620px); overflow-y: auto; direction: ltr; }
+.study-mode .back {
+  height: 100%; max-height: none; overflow: hidden; padding: 13px 17px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
 .translation { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.study-mode .translation { padding: 8px 0; }
 .translation header { justify-content: space-between; color: var(--muted); font-size: 12px; font-weight: 800; margin-bottom: 8px; }
+.study-mode .translation header { margin-bottom: 4px; }
 .translation strong { font: clamp(20px,6vw,27px)/1.45 Georgia,serif; }
+.study-mode .translation strong { font-size: clamp(17px,5.2vw,23px); line-height: 1.28; }
 .translation:first-child strong { color: var(--forest); }
 .speak { width: 35px; height: 35px; border-radius: 50%; border: 1px solid #bfd2c9; background: #eef6f2; color: var(--forest); }
 .speak.playing { background: var(--gold-soft); border-color: var(--gold); }
@@ -186,18 +207,25 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
   background:#fff4dc; border-radius:11px; padding:10px 12px; margin:6px 0 0;
   font-size:17px; line-height:1.9; font-family:Tahoma,Arial,sans-serif;
 }
+.study-mode .pronunciation { padding: 6px 9px; font-size: 15px; line-height: 1.55; }
 .breakdown-section { padding-top: 18px; }
+.study-mode .breakdown-section { padding-top: 8px; }
 .breakdown-section > header { color:var(--muted); font-size:12px; font-weight:800; margin-bottom:9px; }
+.study-mode .breakdown-section > header { margin-bottom: 6px; }
 .breakdown { display: flex; flex-wrap: wrap; gap: 8px; }
+.study-mode .breakdown { gap: 5px; }
 .word {
   min-width: 74px; border: 1px solid #e9e0ce; border-radius: 12px; background: #f4f0e7;
   padding: 9px 11px; display: flex; flex-direction: column; gap: 3px;
 }
+.study-mode .word { min-width: 62px; border-radius: 10px; padding: 6px 8px; gap: 1px; }
 .word b { color: var(--forest); font-size: 15px; }
 .word small { color: var(--muted); }
 .word em { color: #966d2d; font-style: normal; font-size: 11px; font-weight: 800; }
 .ratings { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-top: 14px; }
+.study-mode .ratings { margin-top: 8px; }
 .ratings button { min-height: 62px; border-radius: 14px; border: 1px solid var(--line); background: var(--paper); }
+.study-mode .ratings button { min-height: 54px; }
 .ratings button b,.ratings button small { display:block; }
 .ratings small { color: var(--muted); font-size: 10px; margin-top: 4px; }
 .ratings .good { background:#eef7f2; border-color:#9fc8b5; }
@@ -228,7 +256,8 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
 @media(max-width:380px){
   .app{padding-inline:14px}
   .stats{gap:6px}
-  .ratings{grid-template-columns:repeat(2,1fr)}
+  .ratings{grid-template-columns:repeat(4,1fr);gap:4px}
+  .ratings button{min-width:0;padding-inline:2px}
   .library-head{align-items:flex-start;flex-direction:column}
   .add-lesson{width:100%}
 }
