@@ -230,14 +230,139 @@ function message(text) {
 
 function normalizeCard(item) {
   if (!item || typeof item !== "object" || typeof item.english !== "string" || !item.english.trim()) return null;
+  const pronunciation =
+    item.french_pronunciation_fa ??
+    item.frenchPronunciationFa ??
+    item.pronunciation_fa ??
+    item.pronunciationFa ??
+    item.french_pronunciation_persian ??
+    item.persian_pronunciation ??
+    item.pronunciation_segmented_fa ??
+    item.segmented_pronunciation ??
+    item.french_pronunciation ??
+    item.pronunciation ??
+    "";
+  const rawParts =
+    item.french_parts ??
+    item.frenchWordBreakdown ??
+    item.french_word_breakdown ??
+    item.word_by_word ??
+    item.wordByWord ??
+    item.wordBreakdown ??
+    item.french_word_parts ??
+    item.french_tokens ??
+    item.french_analysis ??
+    item.french_breakdown ??
+    item.breakdown ??
+    [];
   return {
     english: item.english.trim(),
     persian: typeof item.persian === "string" ? item.persian.trim() : "",
     turkish: typeof item.turkish === "string" ? item.turkish.trim() : "",
     french: typeof item.french === "string" ? item.french.trim() : "",
-    french_pronunciation_fa: typeof item.french_pronunciation_fa === "string" ? item.french_pronunciation_fa.trim() : "",
-    french_parts: Array.isArray(item.french_parts) ? item.french_parts : [],
+    french_pronunciation_fa: typeof pronunciation === "string" ? pronunciation.trim() : "",
+    french_parts: normalizeFrenchParts(rawParts),
   };
+}
+
+const FRENCH_CONTRACTIONS = {
+  "j'": [["Je", "I"], ["ai", "have"]],
+  "c'": [["ce", "it / this"], ["est", "is"]],
+  "d'": [["de", "of / from"], ["", ""]],
+  "l'": [["le / la", "the"], ["", ""]],
+  "m'": [["me", "myself / me"], ["", ""]],
+  "t'": [["te", "yourself / you"], ["", ""]],
+  "s'": [["se", "oneself"], ["", ""]],
+  "n'": [["ne", "not"], ["", ""]],
+  "qu'": [["que", "that / which"], ["", ""]],
+  du: [["de", "of / from"], ["le", "the"]],
+  au: [["à", "to / at"], ["le", "the"]],
+  aux: [["à", "to / at"], ["les", "the"]],
+  des: [["de", "of / from"], ["les", "the"]],
+};
+
+const FRENCH_COMPOUNDS = {
+  "j'ai": [["Je", "I"], ["ai", "have"]],
+  "c'est": [["ce", "it / this"], ["est", "is"]],
+  "n'ai": [["ne", "not"], ["ai", "have"]],
+  "m'appelle": [["me", "myself"], ["appelle", "call"]],
+  "t'appelles": [["te", "yourself"], ["appelles", "call"]],
+  "s'appelle": [["se", "oneself"], ["appelle", "call"]],
+};
+
+function cleanPartValue(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function expandFrenchComponent(component, surface = "") {
+  const french = cleanPartValue(component?.fr ?? component?.french ?? component?.word ?? component?.token);
+  const english = cleanPartValue(component?.en ?? component?.english ?? component?.meaning ?? component?.gloss);
+  if (!french) return [];
+
+  const lower = french.toLocaleLowerCase("fr").replaceAll("’", "'");
+  if (FRENCH_COMPOUNDS[lower]) {
+    return FRENCH_COMPOUNDS[lower].map(([fr, en], index) => ({
+      fr,
+      en,
+      surface: index === 0 ? (surface || french) : "",
+    }));
+  }
+  if (FRENCH_CONTRACTIONS[lower] && !french.includes("'")) {
+    return FRENCH_CONTRACTIONS[lower].map(([fr, fallbackEnglish], index) => ({
+      fr,
+      en: index === 0 && english && !fallbackEnglish ? english : fallbackEnglish,
+      surface: index === 0 ? (surface || french) : "",
+    }));
+  }
+
+  const apostropheIndex = french.search(/['’]/);
+  if (apostropheIndex > -1 && apostropheIndex < french.length - 1) {
+    const prefix = `${french.slice(0, apostropheIndex).toLocaleLowerCase("fr")}'`;
+    const expansion = FRENCH_CONTRACTIONS[prefix];
+    if (expansion) {
+      const stem = french.slice(apostropheIndex + 1);
+      return [
+        { fr: expansion[0][0], en: expansion[0][1], surface: surface || french },
+        { fr: stem, en: english || expansion[1]?.[1] || "", surface: "" },
+      ];
+    }
+  }
+
+  return [{ fr: french, en: english, surface }];
+}
+
+function normalizeFrenchParts(rawParts) {
+  if (!rawParts) return [];
+  if (!Array.isArray(rawParts) && typeof rawParts === "object") {
+    rawParts = rawParts.parts ?? rawParts.items ?? rawParts.tokens ?? rawParts.components ?? rawParts;
+  }
+  if (!Array.isArray(rawParts) && typeof rawParts === "object") {
+    rawParts = Object.entries(rawParts).map(([fr, en]) => ({ fr, en }));
+  }
+  if (typeof rawParts === "string") {
+    rawParts = rawParts
+      .split(/\r?\n/)
+      .map((line) => line.split(/\s*(?:→|=>|=|\|)\s*/))
+      .filter((pair) => pair[0])
+      .map(([fr, en = ""]) => ({ fr, en }));
+  }
+  if (!Array.isArray(rawParts)) return [];
+
+  return rawParts.flatMap((part) => {
+    if (!part) return [];
+    if (typeof part === "string") {
+      const [fr, en = ""] = part.split(/\s*(?:→|=>|=|\|)\s*/);
+      return expandFrenchComponent({ fr, en });
+    }
+
+    const surface = cleanPartValue(part.surface);
+    if (Array.isArray(part.components)) {
+      return part.components.flatMap((component, componentIndex) =>
+        expandFrenchComponent(component, componentIndex === 0 ? surface : ""),
+      );
+    }
+    return expandFrenchComponent(part, surface);
+  });
 }
 
 async function importFile(file) {
@@ -425,7 +550,7 @@ function renderCard(revealed) {
   $("turkishText").textContent = card.turkish || "—";
   $("frenchText").textContent = card.french || "—";
   $("pronunciationText").textContent = card.french_pronunciation_fa || "";
-  $("pronunciationText").classList.toggle("hidden", !card.french_pronunciation_fa);
+  $("pronunciationBlock").classList.toggle("hidden", !card.french_pronunciation_fa);
   $("cardFront").classList.toggle("hidden", revealed);
   $("cardBack").classList.toggle("hidden", !revealed);
   $("ratings").classList.toggle("hidden", !revealed);
@@ -433,24 +558,24 @@ function renderCard(revealed) {
 }
 
 function renderBreakdown(parts) {
+  parts = normalizeFrenchParts(parts);
   $("breakdown").replaceChildren();
   (parts || []).forEach((part) => {
-    (part.components || []).forEach((component, componentIndex) => {
-      const item = document.createElement("span");
-      item.className = "word";
-      if (componentIndex === 0 && part.surface && part.surface !== component.fr) {
-        const surface = document.createElement("em");
-        surface.textContent = part.surface;
-        item.append(surface);
-      }
-      const french = document.createElement("b");
-      french.textContent = component.fr;
-      const english = document.createElement("small");
-      english.textContent = component.en;
-      item.append(french, english);
-      $("breakdown").append(item);
-    });
+    const item = document.createElement("span");
+    item.className = "word";
+    if (part.surface && part.surface !== part.fr) {
+      const surface = document.createElement("em");
+      surface.textContent = part.surface;
+      item.append(surface);
+    }
+    const french = document.createElement("b");
+    french.textContent = part.fr;
+    const english = document.createElement("small");
+    english.textContent = part.en || "—";
+    item.append(french, english);
+    $("breakdown").append(item);
   });
+  $("breakdownSection").classList.toggle("hidden", !(parts || []).length);
 }
 
 function speak(field, button) {
@@ -480,7 +605,7 @@ function speak(field, button) {
   speechSynthesis.speak(utterance);
 }
 
-function rateCard(rating) {
+function rateCard(rating, advance = true) {
   const card = currentCard();
   const key = cardId(card);
   const previous = reviews[key] || { due: 0, interval: 0, repetitions: 0, ease: 2.5, seen: 0 };
@@ -498,8 +623,29 @@ function rateCard(rating) {
   reviews[key] = { due, interval, repetitions, ease, seen: previous.seen + 1 };
   reviewsByDeck[activeDeckId] = reviews;
   write(KEYS.reviews, reviewsByDeck);
-  index = (index + 1) % studyCards.length;
-  renderCard(false);
+  if (advance) {
+    index = (index + 1) % studyCards.length;
+    renderCard(false);
+  }
+}
+
+function answerFront(answer) {
+  if (answer === "known") {
+    rateCard("easy", false);
+    studyCards.splice(index, 1);
+    if (!studyCards.length) {
+      setStudyStart();
+      show("homeView");
+      return;
+    }
+    if (index >= studyCards.length) index = 0;
+    renderCard(false);
+    return;
+  }
+  if (answer === "forgot") {
+    rateCard("again", false);
+    renderCard(true);
+  }
 }
 
 document.addEventListener("click", (event) => {
@@ -510,7 +656,6 @@ document.addEventListener("click", (event) => {
   if (action === "home" || action === "library") show(decks.length ? "libraryView" : "emptyView");
   if (action === "settings") show("settingsView");
   if (action === "study") startStudy();
-  if (action === "reveal") renderCard(true);
   if (action === "reset" && deck && confirm(`پیشرفت یادگیری درس «${deck.name}» پاک شود؟`)) {
     reviews = {};
     reviewsByDeck[activeDeckId] = reviews;
@@ -521,6 +666,7 @@ document.addEventListener("click", (event) => {
   if (target.dataset.deleteLessonId) deleteLesson(target.dataset.deleteLessonId);
   if (target.dataset.lessonId) openLesson(target.dataset.lessonId);
   if (target.dataset.speak) speak(target.dataset.speak, target);
+  if (target.dataset.answer) answerFront(target.dataset.answer);
   if (target.dataset.rate) rateCard(target.dataset.rate);
 });
 

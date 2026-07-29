@@ -74,11 +74,20 @@
         <div class="bar"><span id="studyBar"></span></div>
 
         <article id="flashcard" class="flashcard">
-          <button id="cardFront" class="front" data-action="reveal" type="button">
+          <div id="cardFront" class="front">
             <span class="pill">فارسی</span>
             <strong id="persianText"></strong>
-            <small>برای دیدن پاسخ لمس کن</small>
-          </button>
+            <div class="front-actions" aria-label="ارزیابی کارت">
+              <button class="know" data-answer="known" type="button">
+                <b>بلدم</b>
+                <small>مرور کمتر</small>
+              </button>
+              <button class="forgot" data-answer="forgot" type="button">
+                <b>یادم رفته</b>
+                <small>نمایش پاسخ</small>
+              </button>
+            </div>
+          </div>
           <div id="cardBack" class="back hidden">
             <section class="translation">
               <header><span>English</span><button class="speak" data-speak="english" type="button">▶</button></header>
@@ -91,9 +100,15 @@
             <section class="translation">
               <header><span>Français</span><button class="speak" data-speak="french" type="button">▶</button></header>
               <strong id="frenchText" dir="ltr"></strong>
-              <p id="pronunciationText" class="pronunciation"></p>
+              <div id="pronunciationBlock" class="pronunciation-block hidden">
+                <small>تلفظ فرانسوی با خط فارسی</small>
+                <p id="pronunciationText" class="pronunciation"></p>
+              </div>
             </section>
-            <section id="breakdown" class="breakdown"></section>
+            <section id="breakdownSection" class="breakdown-section hidden">
+              <header>تجزیه فرانسوی به انگلیسی</header>
+              <div id="breakdown" class="breakdown"></div>
+            </section>
           </div>
         </article>
 
