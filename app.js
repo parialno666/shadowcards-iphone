@@ -529,9 +529,7 @@ function renderHome() {
 
 function startStudy() {
   if (!deck) return;
-  const now = Date.now();
-  const due = deck.cards.filter((card) => (reviews[cardId(card)]?.due || 0) <= now);
-  studyCards = due.length ? due : deck.cards;
+  studyCards = [...deck.cards];
   index = 0;
   show("studyView");
   renderCard(false);
@@ -539,6 +537,20 @@ function startStudy() {
 
 function currentCard() {
   return studyCards[index % studyCards.length];
+}
+
+function fitPersianText() {
+  const element = $("persianText");
+  const length = Array.from(element.textContent || "").length;
+  let size = length > 95 ? 24 : length > 60 ? 31 : 40;
+  element.style.fontSize = `${size}px`;
+
+  while (size > 14) {
+    const lineHeight = Number.parseFloat(getComputedStyle(element).lineHeight);
+    if (element.scrollHeight <= lineHeight * 2 + 2) break;
+    size -= 1;
+    element.style.fontSize = `${size}px`;
+  }
 }
 
 function renderCard(revealed) {
@@ -554,6 +566,7 @@ function renderCard(revealed) {
   $("cardFront").classList.toggle("hidden", revealed);
   $("cardBack").classList.toggle("hidden", !revealed);
   $("ratings").classList.toggle("hidden", !revealed);
+  if (!revealed) fitPersianText();
   renderBreakdown(card.french_parts);
 }
 

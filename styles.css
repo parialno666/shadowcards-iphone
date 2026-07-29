@@ -146,10 +146,14 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
 }
 .front {
   width: 100%; min-height: min(66vh,620px); border: 0; padding: 34px 25px;
-  background: linear-gradient(155deg,rgba(220,236,229,.8),transparent 50%),var(--paper);
+  background: var(--paper);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.front strong { max-width: 430px; color: var(--deep); font-size: clamp(27px,8vw,40px); line-height: 1.75; }
+.front strong {
+  width: 100%; max-width: 450px; color: var(--deep); font-size: 40px; line-height: 1.55;
+  text-align: center; overflow-wrap: normal; word-break: normal;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+}
 .front-actions {
   width: min(100%,390px); display: grid; grid-template-columns: 1fr 1fr;
   gap: 11px; margin-top: 34px;
@@ -164,7 +168,10 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
 .front-actions .know { color: var(--forest); background: #eef7f2; border: 1px solid #9fc8b5; }
 .front-actions .forgot { color: #8f372e; background: #fff3f0; border: 1px solid #ddb0aa; }
 .front-actions button:active { transform: scale(.98); }
-.pill { color: var(--forest); background: var(--mint); border-radius: 99px; padding: 7px 14px; margin-bottom: 24px; font-size: 12px; font-weight: 800; }
+.pill {
+  color: var(--muted); background: transparent; padding: 0; margin-bottom: 24px;
+  font-size: 12px; font-weight: 800;
+}
 .back { padding: 22px; max-height: min(66vh,620px); overflow-y: auto; direction: ltr; }
 .translation { padding: 16px 0; border-bottom: 1px solid var(--line); }
 .translation header { justify-content: space-between; color: var(--muted); font-size: 12px; font-weight: 800; margin-bottom: 8px; }
