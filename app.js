@@ -555,28 +555,49 @@ function fitPersianText() {
   }
 }
 
-function formatPersianPronunciation(value) {
+function splitPersianPronunciation(value) {
   const pronunciation = String(value || "")
     .trim()
-    .replace(/\s*(?:\||｜|–|—)\s*/g, " - ")
-    .replace(/\s+-\s+/g, " - ")
-    .replace(/\s{2,}/g, " ");
+    .replace(/\s*(?:\||｜|–|—|\s-\s)\s*/g, "|");
 
-  if (!pronunciation || pronunciation.includes(" - ")) return pronunciation;
-  return pronunciation.split(/\s+/).join(" - ");
+  if (!pronunciation) return [];
+  return (pronunciation.includes("|") ? pronunciation.split("|") : pronunciation.split(/\s+/))
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function renderPersianPronunciation(value) {
+  const parts = splitPersianPronunciation(value);
+  const element = $("pronunciationText");
+  element.replaceChildren();
+
+  parts.forEach((part, partIndex) => {
+    if (partIndex) {
+      const pause = document.createElement("span");
+      pause.className = "pause-marker";
+      pause.textContent = "-";
+      pause.setAttribute("aria-hidden", "true");
+      element.append(pause);
+    }
+    const spokenPart = document.createElement("span");
+    spokenPart.className = "pronunciation-part";
+    spokenPart.textContent = part;
+    element.append(spokenPart);
+  });
+  element.setAttribute("aria-label", parts.join("، مکث، "));
+  return parts.length > 0;
 }
 
 function renderCard(revealed) {
   const card = currentCard();
-  const pronunciation = formatPersianPronunciation(card.french_pronunciation_fa);
+  const hasPronunciation = renderPersianPronunciation(card.french_pronunciation_fa);
   $("studyCounter").textContent = `${faNumber(index + 1)} از ${faNumber(studyCards.length)}`;
   $("studyBar").style.width = `${((index + 1) / studyCards.length) * 100}%`;
   $("persianText").textContent = card.persian || "ترجمه فارسی ثبت نشده است.";
   $("englishText").textContent = card.english;
   $("turkishText").textContent = card.turkish || "—";
   $("frenchText").textContent = card.french || "—";
-  $("pronunciationText").textContent = pronunciation;
-  $("pronunciationBlock").classList.toggle("hidden", !pronunciation);
+  $("pronunciationBlock").classList.toggle("hidden", !hasPronunciation);
   $("cardFront").classList.toggle("hidden", revealed);
   $("cardBack").classList.toggle("hidden", !revealed);
   $("ratings").classList.toggle("hidden", !revealed);

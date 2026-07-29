@@ -206,7 +206,10 @@ h1 { margin: 0; color: var(--deep); font-size: clamp(32px,9vw,48px); line-height
   direction: rtl; unicode-bidi: plaintext; text-align: right; color:#704c16;
   background:#fff4dc; border-radius:11px; padding:10px 12px; margin:6px 0 0;
   font-size:17px; line-height:1.9; font-family:Tahoma,Arial,sans-serif;
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:0 7px;
 }
+.pronunciation-part { white-space:nowrap; }
+.pause-marker { color:#b47711; font-weight:900; direction:ltr; }
 .study-mode .pronunciation { padding: 6px 9px; font-size: 15px; line-height: 1.55; }
 .breakdown-section { padding-top: 18px; }
 .study-mode .breakdown-section { padding-top: 8px; }
