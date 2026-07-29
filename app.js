@@ -555,16 +555,28 @@ function fitPersianText() {
   }
 }
 
+function formatPersianPronunciation(value) {
+  const pronunciation = String(value || "")
+    .trim()
+    .replace(/\s*(?:\||｜|–|—)\s*/g, " - ")
+    .replace(/\s+-\s+/g, " - ")
+    .replace(/\s{2,}/g, " ");
+
+  if (!pronunciation || pronunciation.includes(" - ")) return pronunciation;
+  return pronunciation.split(/\s+/).join(" - ");
+}
+
 function renderCard(revealed) {
   const card = currentCard();
+  const pronunciation = formatPersianPronunciation(card.french_pronunciation_fa);
   $("studyCounter").textContent = `${faNumber(index + 1)} از ${faNumber(studyCards.length)}`;
   $("studyBar").style.width = `${((index + 1) / studyCards.length) * 100}%`;
   $("persianText").textContent = card.persian || "ترجمه فارسی ثبت نشده است.";
   $("englishText").textContent = card.english;
   $("turkishText").textContent = card.turkish || "—";
   $("frenchText").textContent = card.french || "—";
-  $("pronunciationText").textContent = card.french_pronunciation_fa || "";
-  $("pronunciationBlock").classList.toggle("hidden", !card.french_pronunciation_fa);
+  $("pronunciationText").textContent = pronunciation;
+  $("pronunciationBlock").classList.toggle("hidden", !pronunciation);
   $("cardFront").classList.toggle("hidden", revealed);
   $("cardBack").classList.toggle("hidden", !revealed);
   $("ratings").classList.toggle("hidden", !revealed);
