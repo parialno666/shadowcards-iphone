@@ -464,6 +464,16 @@ function renderLibrary() {
 
     openButton.append(copy, progressRing);
 
+    const lessonActions = document.createElement("div");
+    lessonActions.className = "lesson-actions";
+
+    const renameButton = document.createElement("button");
+    renameButton.className = "rename-lesson";
+    renameButton.type = "button";
+    renameButton.dataset.renameLessonId = item.id;
+    renameButton.setAttribute("aria-label", `تغییر نام درس ${item.name}`);
+    renameButton.textContent = "تغییر نام";
+
     const deleteButton = document.createElement("button");
     deleteButton.className = "delete-lesson";
     deleteButton.type = "button";
@@ -471,7 +481,8 @@ function renderLibrary() {
     deleteButton.setAttribute("aria-label", `حذف درس ${item.name}`);
     deleteButton.textContent = "حذف درس";
 
-    lessonCard.append(openButton, deleteButton);
+    lessonActions.append(renameButton, deleteButton);
+    lessonCard.append(openButton, lessonActions);
     $("lessonList").append(lessonCard);
   });
 }
@@ -503,6 +514,26 @@ function deleteLesson(id) {
   persistLessons();
   message(`درس «${lesson.name}» حذف شد.`);
   show(decks.length ? "libraryView" : "emptyView");
+}
+
+function renameLesson(id) {
+  const lesson = decks.find((item) => item.id === id);
+  if (!lesson) return;
+
+  const requestedName = prompt("نام جدید درس را وارد کن:", lesson.name);
+  if (requestedName === null) return;
+  const newName = cleanLessonName(requestedName);
+  if (!newName) {
+    message("نام درس نمی‌تواند خالی باشد.");
+    return;
+  }
+  if (newName === lesson.name) return;
+
+  lesson.name = newName;
+  syncActiveDeck();
+  persistLessons();
+  message(`نام درس به «${newName}» تغییر کرد.`);
+  renderLibrary();
 }
 
 function setStudyStart() {
@@ -711,6 +742,7 @@ document.addEventListener("click", (event) => {
     message("پیشرفت این درس پاک شد.");
     show("homeView");
   }
+  if (target.dataset.renameLessonId) renameLesson(target.dataset.renameLessonId);
   if (target.dataset.deleteLessonId) deleteLesson(target.dataset.deleteLessonId);
   if (target.dataset.lessonId) openLesson(target.dataset.lessonId);
   if (target.dataset.speak) speak(target.dataset.speak, target);
